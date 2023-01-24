@@ -56,7 +56,7 @@ suite "ffmpeg":
 
         assert(stream.width.get == 100 and stream.height.get == 100, "Image is resized to 100x100")
 
-    test "Converts audio to opus in ogg contain":
+    test "Converts audio to opus in ogg container":
         var jobProc = doJob("scott_brownish_melody_by_tas.mp3", "out.ogg", EncodeSettings(
             kind: EncodeSettingsKind.Audio,
             audioEncoder: some AudioEncoder(kind: LibOpus),
