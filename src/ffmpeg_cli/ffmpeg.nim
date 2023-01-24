@@ -379,8 +379,8 @@ proc startFfmpegProcess*(
                 chanRes = ctx.progressChan.tryRecv()
                 return chanRes.dataAvailable
 
-            # Loop while the thread is running OR there is still data to be read from the progress channel
-            while thread.running or tryRecvProg():
+            # Loop while there is still data to be read from the progress channel OR the thread is running
+            while tryRecvProg() or thread.running:
                 await sleepAsync(10)
 
                 # Tell the thread to cancel the process if signified
