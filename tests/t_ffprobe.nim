@@ -8,7 +8,7 @@ suite "ffprobe":
 
     test "Probes video":
         let res = probeFile(
-            inputPath = mediaPath / "charles_manson_chika_dance.webm"
+            inputFile = mediaPath / "charles_manson_chika_dance.webm"
         )
 
         # Check that the file title is probed properly
@@ -23,7 +23,7 @@ suite "ffprobe":
     
     test "Probes image":
         let res = probeFile(
-            inputPath = mediaPath / "cat_thumbs_up.jpg"
+            inputFile = mediaPath / "cat_thumbs_up.jpg"
         )
 
         # Check the number of streams
@@ -35,7 +35,7 @@ suite "ffprobe":
     
     test "Probes audio":
         let res = probeFile(
-            inputPath = mediaPath / "scott_brownish_melody_by_tas.mp3"
+            inputFile = mediaPath / "scott_brownish_melody_by_tas.mp3"
         )
 
         # Check the number of streams
@@ -48,7 +48,7 @@ suite "ffprobe":
     test "Raises error when trying to probe nonexistent file":
         try:
             echo probeFile(
-                inputPath = mediaPath / "doesnt_exist.mp4"
+                inputFile = mediaPath / "doesnt_exist.mp4"
             )
             check false
         except:
@@ -56,6 +56,6 @@ suite "ffprobe":
 
     test "Async convenience method works":
         discard waitFor probeFileAsync(
-            inputPath = mediaPath / "cat_thumbs_up.jpg"
+            inputFile = mediaPath / "cat_thumbs_up.jpg"
         )
         check true

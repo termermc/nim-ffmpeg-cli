@@ -51,7 +51,7 @@ suite "ffmpeg":
         ))
         waitFor jobProc.future
 
-        let probeRes = probeFile(inputPath = tmpPath / "out.jpg")
+        let probeRes = probeFile(inputFile = tmpPath / "out.jpg")
         let stream = probeRes.streams.get[0]
 
         assert(stream.width.get == 100 and stream.height.get == 100, "Image is resized to 100x100")
