@@ -14,7 +14,7 @@ type FfprobeError* = object of IOError
 
 proc probeFile*(
     ffprobePath: string = "ffprobe",
-    inputPath: string,
+    inputFile: string,
     showFormat: bool = true,
     showStreams: bool = true,
     showChapters: bool = true
@@ -36,7 +36,7 @@ proc probeFile*(
     if showChapters:
         args.add("-show_chapters")
 
-    args.add(inputPath)
+    args.add(inputFile)
 
     let res = execProcess(ffprobePath, args = args, options = {poUsePath}).toFfprobeResult()
 
@@ -67,7 +67,7 @@ type FfprobeThreadContext = object
     ffprobePath: string
         ## Path to the FFprobe executable on the system
 
-    inputPath: string
+    inputFile: string
         ## Path to the file to probe
 
     showFormat: bool
@@ -86,7 +86,7 @@ proc ffprobeThread(ctx: ref FfprobeThreadContext) =
     ## An FFprobe process executor thread
     
     try:
-        let res = probeFile(ctx.ffprobePath, ctx.inputPath, ctx.showFormat, ctx.showStreams, ctx.showChapters)
+        let res = probeFile(ctx.ffprobePath, ctx.inputFile, ctx.showFormat, ctx.showStreams, ctx.showChapters)
         ctx.resultChan.send(FfprobeThreadResult(result: some res))
     except:
         var ex: ref FfprobeError
@@ -95,7 +95,7 @@ proc ffprobeThread(ctx: ref FfprobeThreadContext) =
 
 proc probeFileAsync*(
     ffprobePath: string = "ffprobe",
-    inputPath: string,
+    inputFile: string,
     showFormat: bool = true,
     showStreams: bool = true,
     showChapters: bool = true
@@ -111,7 +111,7 @@ proc probeFileAsync*(
     # Initialize thread context
     var ctx = new FfprobeThreadContext
     ctx.ffprobePath = ffprobePath
-    ctx.inputPath = inputPath
+    ctx.inputFile = inputFile
     ctx.showFormat = showFormat
     ctx.showStreams = showStreams
     ctx.showChapters = showChapters

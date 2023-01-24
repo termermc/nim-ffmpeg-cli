@@ -4,54 +4,73 @@
 ## 
 ## See below for some examples on how to use this module.
 
-runnableExamples "Convert an MP4 video to WEBM":
-    import std/[asyncdispatch]
-    import ffmpeg_cli/[ffmpeg, definitions]
+runnableExamples "--threads:on":
+    # Convert a video to WEBM
 
-    waitFor startFfmpegProcess(job = FfmpegJob(
-        inputFile: "input.mp4",
-        outputFile: "output.webm"
-    )).future
+    import std/[os, asyncdispatch]
+    import "."/[ffmpeg, definitions]
 
-runnableExamples "Downscale an MP4 video to 720p WEBM":
-    import std/[asyncdispatch]
-    import ffmpeg_cli/[ffmpeg, definitions]
+    try:
+        let filePath = "input.mp4"
 
-    waitFor startFfmpegProcess(job = FfmpegJob(
-        inputFile: "input.mp4",
-        outputFile: "output.webm",
-        settings: EncodeSettings(
-            kind: EncodeSettingsKind.Video,
-            videoFilters: @[downscale(PreserveAspectRatio, 720)] # Note: you should use PreserveAspectRatioDivisibleByTwo when encoding to MP4
-        )
-    )).future
+        waitFor startFfmpegProcess(job = FfmpegJob(
+            inputFile: filePath,
+            outputFile: "output.webm"
+        )).future
+    except:
+        echo "Something went wrong: " & getCurrentExceptionMsg()
 
-runnableExamples "Print the progress percentage of an encode job":
-    import std/[asyncdispatch, math]
-    import ffmpeg_cli/[ffmpeg, ffprobe, definitions]
+runnableExamples "--threads:on":
+    # Downscale a video to 720p WEBM
+
+    import std/[os, asyncdispatch]
+    import "."/[ffmpeg, definitions]
 
     let filePath = "input.mp4"
 
-    # First probe the file to get its total duration, then convert it to microseconds
-    let probeRes = probeFile(inputFile = filePath)
-    let totalDuration = parseFloat(probeRes.format.get.duration.get) * 1_000_000
+    try:
+        waitFor startFfmpegProcess(job = FfmpegJob(
+            inputFile: filePath,
+            outputFile: "output.webm",
+            settings: EncodeSettings(
+                kind: EncodeSettingsKind.Video,
+                videoFilters: @[downscale(PreserveAspectRatio, 720)] # Note: you should use PreserveAspectRatioDivisibleByTwo when encoding to MP4
+            )
+        )).future
+    except:
+        echo "Something went wrong: " & getCurrentExceptionMsg()
 
-    # Create listener proc
-    proc progressListener(prog: FfmpegEncodeProgress) =
-        echo floor((prog.currentTimeMicroseconds.int / totalDuration.int) * 100) & '%'
-    
-    # Start process
-    var process = startFfmpegProcess(job = FfmpegJob(
-        inputFile: filePath,
-        outputFile: "output.webm"
-    ))
+runnableExamples "--threads:on":
+    # Print the progress percentage of an encode job
 
-    # Add listener to be called when progress is reported
-    process.addProgressListener(progressListener)
+    import std/[os, asyncdispatch, math, strutils, options]
+    import "."/[ffmpeg, ffprobe, definitions]
 
-    # Block thread until the process is complete.
-    # This does not inhibit the progress listener from being called because progress listeners are called on this thread during execution.
-    waitFor process.future
+    let filePath = "input.mp4"
+
+    try:
+        # First probe the file to get its total duration, then convert it to microseconds
+        let probeRes = probeFile(inputFile = filePath)
+        let totalDuration = parseFloat(probeRes.format.get.duration.get) * 1_000_000
+
+        # Create listener proc
+        proc progressListener(prog: FfmpegEncodeProgress) =
+            echo $floor((prog.currentTimeMicroseconds.int / totalDuration.int) * 100) & '%'
+        
+        # Start process
+        var process = startFfmpegProcess(job = FfmpegJob(
+            inputFile: filePath,
+            outputFile: "output.webm"
+        ))
+
+        # Add listener to be called when progress is reported
+        process.addProgressListener(progressListener)
+
+        # Block thread until the process is complete.
+        # This does not inhibit the progress listener from being called because progress listeners are called on this thread during execution.
+        waitFor process.future
+    except:
+        echo "Something went wrong: " & getCurrentExceptionMsg()
 
 
 import std/[osproc, asyncfutures, asyncdispatch, options, os, streams, strutils, nre, strformat]
@@ -354,14 +373,20 @@ proc startFfmpegProcess*(
         try:
             var lastProg: Option[FfmpegThreadProgress]
 
-            while thread.running:
+            var chanRes: tuple[dataAvailable: bool, msg: FfmpegThreadProgress]
+
+            proc tryRecvProg(): bool =
+                chanRes = ctx.progressChan.tryRecv()
+                return chanRes.dataAvailable
+
+            # Loop while the thread is running OR there is still data to be read from the progress channel
+            while thread.running or tryRecvProg():
                 await sleepAsync(10)
 
                 # Tell the thread to cancel the process if signified
                 if process.shouldCancel:
                     ctx.canceled = true
 
-                let chanRes = ctx.progressChan.tryRecv()
                 if chanRes.dataAvailable:
                     let prog = chanRes.msg
                     lastProg = some(prog)
@@ -382,7 +407,7 @@ proc startFfmpegProcess*(
                 else:
                     process.future.complete()
             else:
-                process.future.fail(newException(IOError, "FFmpeg process manager thread terminated, but no input was received from it"))
+                process.future.fail(newException(IOError, "FFmpeg process executor thread terminated, but no input was received from it"))
         finally:
             ctx.progressChan.close()
 
