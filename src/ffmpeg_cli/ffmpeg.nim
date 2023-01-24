@@ -135,7 +135,7 @@ func clearProgressListeners*(this: FfmpegProcess) =
     
     this.progressListeners.setLen(0)
 
-proc cancel*(this: FfmpegProcess) =
+func cancel*(this: FfmpegProcess) =
     ## Cancels a currently processing FFmpeg job.
     ## The output file will not be deleted.
     ## The FFmpeg process will not be terminated immediately. Instead, a message will be sent to the FFmpeg manager thread to terminate it.
