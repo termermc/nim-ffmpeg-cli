@@ -85,7 +85,7 @@ type FfmpegProcess* = ref object
     
     # Private values
     progressListeners: seq[FfmpegEncodeProgressListener]
-        ## Currently registered progress listened
+        ## Currently registered progress listeners
 
     probeResult*: Option[FfprobeResult]
         ## The result of the probe performed before the process, or none if no probe was performed
