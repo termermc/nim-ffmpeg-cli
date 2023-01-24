@@ -1,3 +1,7 @@
 nimcache/
 nimblecache/
 htmldocs/
+
+# Test binaries
+/tests/t_ffmpeg
+/tests/t_ffprobe
